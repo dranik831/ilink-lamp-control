@@ -15,21 +15,24 @@ MAC = "3A:11:FC:7D:C7:33"   # ожидаемый адрес люстры
 
 async def main() -> None:
     print("Сканирую 10 секунд...")
-    devices = await BleakScanner.discover(timeout=10.0)
+    # return_adv=True возвращает {адрес: (BLEDevice, AdvertisementData)} —
+    # RSSI и имя живут в AdvertisementData
+    found_devices = await BleakScanner.discover(timeout=10.0, return_adv=True)
 
-    if not devices:
+    if not found_devices:
         print("Ничего не найдено. Проверь, что Bluetooth-адаптер включён.")
         return
 
     found = False
     print(f"\n{'Адрес':<20}{'RSSI':<7}Имя")
     print("-" * 60)
-    for d in sorted(devices, key=lambda x: x.rssi, reverse=True):
+    for d, adv in sorted(found_devices.values(),
+                         key=lambda x: x[1].rssi, reverse=True):
         mark = ""
         if d.address.upper() == MAC.upper():
             mark = "  ← ЛЮСТРА НАЙДЕНА"
             found = True
-        print(f"{d.address:<20}{d.rssi:<7}{d.name or '(без имени)'}{mark}")
+        print(f"{d.address:<20}{adv.rssi:<7}{adv.local_name or d.name or '(без имени)'}{mark}")
 
     if not found:
         print(f"\nЛюстра ({MAC}) в эфире НЕ видна.")
